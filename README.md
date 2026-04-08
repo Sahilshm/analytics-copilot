@@ -185,6 +185,20 @@ Covers:
 - End-to-end integration
 
 ## Troubleshooting
+## Scripts
+
+All scripts are in `./scripts/`:
+
+| Script | Purpose |
+|--------|---------|
+| `prepare_retail_data.py` | Clean Kaggle Online Retail CSV and split into 3 tables |
+| `load_bigquery.py` | Load prepared data into BigQuery |
+| `deploy_cloudrun_postgres.sh` | Deploy to Cloud Run with Cloud SQL + Secret Manager |
+| `migrate_productivity_sqlite_to_postgres.py` | Migrate local SQLite data to production Postgres |
+| `pause_project.sh` | Switch to low-cost demo mode (rule-based LLM, demo data) |
+| `resume_demo.sh` | Restore BigQuery demo setup |
+| `gcloudw.sh` | Wrapper for gcloud to use local config when needed |
+
 
 ### Notes not capturing full content
 - Check execution agent instruction: must include `"CRITICAL: When passing analytics data to save_note, use the COMPLETE formatted response..."`

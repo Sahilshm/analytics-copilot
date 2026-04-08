@@ -32,3 +32,6 @@ adk_sessions.db
 # Temporary
 prev_context.txt
 *.tmp
+
+# Demo data (large files)
+prepared_data/*.csv
