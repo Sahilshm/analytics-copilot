@@ -1,12 +1,34 @@
-.venv/
+# Python
 __pycache__/
 *.pyc
-.DS_Store
-.pytest_cache/
-.env
+*.pyo
 *.egg-info/
 *.dist-info/
+.pytest_cache/
+.venv/
 
-# ADK local runtime artifacts
-.adk/
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+.gcloud/
+
+# Local data
+*.db
+copilot.db
 adk_sessions.db
+
+# ADK artifacts
+.adk/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary
+prev_context.txt
+*.tmp
