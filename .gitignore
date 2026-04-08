@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+.env
+*.egg-info/
+*.dist-info/
+
+# ADK local runtime artifacts
+.adk/
+adk_sessions.db

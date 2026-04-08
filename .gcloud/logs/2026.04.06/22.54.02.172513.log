@@ -1,0 +1,26 @@
+2026-04-06 22:54:02,174 DEBUG    root            Running [gcloud] with arguments: [-v: "None"]
+2026-04-06 22:54:02,305 DEBUG    root            Loaded Command Group: ['gcloud', 'version']
+2026-04-06 22:54:02,306 DEBUG    root            Running [gcloud.version] with arguments: []
+2026-04-06 22:54:02,308 DEBUG    root            On GCE from disk cache: False
+2026-04-06 22:54:02,318 DEBUG    root            Chosen display Format:flattened[no-pad,separator=" "]
+2026-04-06 22:54:02,319 INFO     root            Display format: "flattened[no-pad,separator=" "]"
+2026-04-06 22:54:02,374 INFO     ___FILE_ONLY___ Google Cloud SDK
+2026-04-06 22:54:02,374 INFO     ___FILE_ONLY___  
+2026-04-06 22:54:02,375 INFO     ___FILE_ONLY___ 563.0.0
+
+2026-04-06 22:54:02,376 INFO     ___FILE_ONLY___ bq
+2026-04-06 22:54:02,376 INFO     ___FILE_ONLY___  
+2026-04-06 22:54:02,377 INFO     ___FILE_ONLY___ 2.1.31
+
+2026-04-06 22:54:02,378 INFO     ___FILE_ONLY___ core
+2026-04-06 22:54:02,379 INFO     ___FILE_ONLY___  
+2026-04-06 22:54:02,379 INFO     ___FILE_ONLY___ 2026.03.27
+
+2026-04-06 22:54:02,380 INFO     ___FILE_ONLY___ gcloud-crc32c
+2026-04-06 22:54:02,381 INFO     ___FILE_ONLY___  
+2026-04-06 22:54:02,382 INFO     ___FILE_ONLY___ 1.0.0
+
+2026-04-06 22:54:02,383 INFO     ___FILE_ONLY___ gsutil
+2026-04-06 22:54:02,384 INFO     ___FILE_ONLY___  
+2026-04-06 22:54:02,385 INFO     ___FILE_ONLY___ 5.36
+

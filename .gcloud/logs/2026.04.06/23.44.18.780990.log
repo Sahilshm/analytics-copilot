@@ -1,0 +1,12 @@
+2026-04-06 23:44:18,782 DEBUG    root            Loaded Command Group: ['gcloud', 'config']
+2026-04-06 23:44:18,804 DEBUG    root            Loaded Command Group: ['gcloud', 'config', 'list']
+2026-04-06 23:44:18,805 DEBUG    root            Running [gcloud.config.list] with arguments: []
+2026-04-06 23:44:18,806 DEBUG    root            On GCE from disk cache: False
+2026-04-06 23:44:18,807 DEBUG    root            Chosen display Format:config
+2026-04-06 23:44:18,807 INFO     root            Display format: "config"
+2026-04-06 23:44:19,684 INFO     ___FILE_ONLY___ [core]
+disable_usage_reporting = True
+
+2026-04-06 23:44:19,685 INFO     ___FILE_ONLY___ 
+Your active configuration is: [default]
+
