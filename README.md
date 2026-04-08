@@ -1,260 +1,228 @@
 # Agentic Analytics Copilot
 
-Agentic Analytics Copilot is a cloud-first FastAPI service that combines an analytics copilot with task, calendar, and notes workflows. It turns natural-language analytics questions into SQL, executes them on data, analyzes the result, generates a chart, and can also create tasks, schedule events, and save notes through MCP-style tools. The core demo path targets Cloud Run + Vertex AI + BigQuery + Slack, while a local mock mode keeps the project testable without cloud credentials.
+Agentic Analytics Copilot is a cloud-first, multi-agent system that combines **analytics querying** with **productivity workflows**. It turns natural-language analytics questions into SQL, executes them on BigQuery, analyzes results, generates charts, and handles task/calendar/note management—all through a unified agent interface.
 
-## What it does
+The project includes:
+- **FastAPI backend** for API-first analytics (`POST /ask`, `POST /copilot`)
+- **ADK web UI** for an interactive agent-powered chat experience
+- **Multi-agent coordination**: planner agent routes requests, execution agent calls tools sequentially
+- **Flexible backends**: Vertex AI or rule-based LLMs, BigQuery or demo data, Slack or log notifications, SQLite or Postgres for tasks/notes
 
-- Accepts analytics questions through `POST /ask`
-- Accepts hybrid productivity + analytics workflows through `POST /copilot`
-- Coordinates a primary analytics agent plus sub-agents and productivity workflows
-- Calls MCP-style tools for SQL generation, query execution, analysis, charting, alerts, tasks, calendar events, and notes
-- Returns SQL, result preview, chart data, insight text, alert status, and productivity actions
-- Exposes `GET /health` and `GET /schema` for operational visibility
+## Key Features
+
+- 🤖 **Multi-agent orchestration**: Planner routes requests, Executor calls analytics & productivity tools
+- 📊 **Natural-language analytics**: SQL generation → execution → analysis → visualization
+- 📋 **Productivity integration**: Create tasks, schedule events, save notes directly from analytics insights
+- 🔄 **Slack formatting**: Automatically converts markdown tables and code blocks to Slack-friendly format
+- 💾 **Full data preservation**: Notes capture complete analytics responses with all markdown
+- 🌐 **Web UI + REST API**: Choose interactive chat (ADK) or programmatic access (FastAPI)
+- ☁️ **Cloud-ready**: Deployed on Cloud Run with Vertex AI, BigQuery, Cloud SQL, Secret Manager
 
 ## Architecture
 
-- `PrimaryCoordinatorAgent`: owns the workflow and final response assembly
-- `SqlAgent`: generates warehouse-aware SQL for the retail schema
-- `InsightAgent`: computes drop percentage and leading country driver
-- `ProductivityAgent`: creates or retrieves tasks, calendar events, and notes
-- `CopilotCoordinatorAgent`: routes requests across analytics and productivity domains
-- `ToolRegistry`: validates and invokes MCP-style tools with structured logs
-- `ProductivityStore`: pluggable storage for tasks, schedules, and notes (`sqlite` or `postgres`)
-- Providers:
-  - `VertexLLMClient` or `RuleBasedLLMClient`
-  - `BigQueryWarehouseClient` or `DemoWarehouseClient`
-  - `SlackNotifier` or `LogNotifier`
-  - `MatplotlibChartRenderer` or `SvgChartRenderer`
+```
+User Input
+    ↓
+PlannerAgent (routing)
+    ↓
+ExecutionAgent (tool orchestration)
+    ├─ analytics_question()
+    │  └─ PrimaryCoordinatorAgent
+    │     ├─ SqlAgent (generate SQL)
+    │     ├─ ExecuteSQLTool (run query)
+    │     ├─ AnalyzeDataTool (compute insights)
+    │     └─ RenderChartTool (create visualization)
+    ├─ save_note(title, content) → create_note in registry
+    ├─ send_slack_message(message) → markdown→Slack formatter
+    ├─ create_task, retrieve_notes, etc.
+    └─ Response (text + optional chart artifact)
+```
 
-## Quick start
+### Core Components
 
-1. Create a virtual environment and install the package:
+| Component | Purpose |
+|-----------|---------|
+| **PlannerAgent** | Routes requests; outputs one-liner routing plan (no reasoning bloat) |
+| **ExecutionAgent** | Executes tools in sequence; preserves full markdown in responses |
+| **PrimaryCoordinatorAgent** | Orchestrates SQL → execution → analysis → chart pipeline |
+| **ProductivityAgent** | Handles task/calendar/note CRUD operations |
+| **CopilotCoordinatorAgent** | Hybrid router: analytics + productivity domains |
+| **ToolRegistry** | MCP-style tool validation and invoke with structured logging |
+| **_markdown_to_slack()** | Converts markdown tables/headings to Slack mrkdwn format |
+| **_normalize_columns()** | Maps SQL aliases (e.g., `order_date` → `date`) for analysis |
 
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -e ".[dev]"
-   ```
+## Quick Start
 
-2. Run locally in mock mode:
-
-   ```bash
-   uvicorn agentic_analytics.main:app --reload
-   ```
-
-3. Call the API:
-
-   ```bash
-   curl -X POST http://127.0.0.1:8000/ask \
-     -H "Content-Type: application/json" \
-     -d '{"question":"Which country contributed most to revenue drop?"}'
-   ```
-
-   ```bash
-   curl -X POST http://127.0.0.1:8000/copilot \
-     -H "Content-Type: application/json" \
-     -d '{"prompt":"Schedule a demo rehearsal tomorrow at 5pm, create a task to finalize slides, and save a note that the BigQuery demo tables are ready."}'
-   ```
-
-## Environment variables
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `APP_ENV` | `development` | Runtime environment label |
-| `LLM_BACKEND` | `rule_based` | `vertex` or `rule_based` |
-| `WAREHOUSE_BACKEND` | `demo` | `bigquery` or `demo` |
-| `NOTIFIER_BACKEND` | `log` | `slack` or `log` |
-| `ALERT_THRESHOLD_PERCENT` | `20` | Trigger threshold for alerts |
-| `GOOGLE_APPLICATION_CREDENTIALS` | unset | Path to a service-account JSON for ADC auth |
-| `GOOGLE_CLOUD_PROJECT` | unset | Project ID for ADK/Google GenAI Vertex routing |
-| `GOOGLE_CLOUD_LOCATION` | `us-central1` | Region for ADK/Google GenAI Vertex routing |
-| `GOOGLE_GENAI_USE_VERTEXAI` | `true` | Forces ADK and Google GenAI to use Vertex AI instead of API-key mode |
-| `GCP_PROJECT_ID` | unset | GCP project for BigQuery and Vertex |
-| `BIGQUERY_DATASET` | `analytics_copilot` | BigQuery dataset name |
-| `BIGQUERY_LOCATION` | `US` | BigQuery and Vertex region |
-| `VERTEX_LOCATION` | `us-central1` | Vertex AI region |
-| `VERTEX_MODEL` | `gemini-2.5-flash` | Vertex model name |
-| `TRANSACTIONS_TABLE` | `transactions` | Transactions table name inside the dataset |
-| `CUSTOMERS_TABLE` | `customers` | Customers table name inside the dataset |
-| `PRODUCTS_TABLE` | `products` | Products table name inside the dataset |
-| `PRODUCTIVITY_STORE_BACKEND` | `sqlite` | `sqlite` or `postgres` |
-| `SQLITE_DB_PATH` | `./copilot.db` | SQLite database used for tasks, calendar events, and notes |
-| `POSTGRES_DSN` | unset | Postgres DSN used when `PRODUCTIVITY_STORE_BACKEND=postgres` |
-| `SLACK_WEBHOOK_URL` | unset | Slack Incoming Webhook |
-| `DEMO_ANCHOR_DATE` | today | Anchor date for local demo data |
-
-## GCP connection
-
-For local development against real GCP services, install the cloud extras and authenticate with either `gcloud auth application-default login` or a service account JSON:
+### Local Mock Mode (No GCP Required)
 
 ```bash
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[cloud]"
-export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
+pip install -e ".[dev]"
+
+# Run FastAPI server
+uvicorn agentic_analytics.main:app --reload
+# Visit http://localhost:8000/docs
+
+# Or run ADK web UI
+pip install -e ".[adk]"
+adk web ./adk_agents
+# Visit http://localhost:8080
+```
+
+**Try it:**
+```bash
+curl -X POST http://127.0.0.1:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Top 5 products by revenue for Q1 2026"}'
+```
+
+### With GCP (BigQuery + Vertex AI)
+
+```bash
+gcloud auth application-default login
 export GOOGLE_CLOUD_PROJECT=your-gcp-project
-export GOOGLE_CLOUD_LOCATION=us-central1
-export GOOGLE_GENAI_USE_VERTEXAI=true
-export GCP_PROJECT_ID=your-gcp-project
-export BIGQUERY_DATASET=analytics_copilot
-export BIGQUERY_LOCATION=US
-export VERTEX_LOCATION=us-central1
 export LLM_BACKEND=vertex
 export WAREHOUSE_BACKEND=bigquery
-export NOTIFIER_BACKEND=slack
-export PRODUCTIVITY_STORE_BACKEND=postgres
-export POSTGRES_DSN=postgresql://user:password@host:5432/database
 export SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-```
 
-If you prefer `gcloud`, set the project and application-default credentials after installing the Cloud SDK:
-
-```bash
-gcloud auth login
-gcloud auth application-default login
-gcloud config set project your-gcp-project
-```
-
-The bundled wrapper script `./scripts/gcloudw.sh` will use your normal `~/.config/gcloud` setup when it exists, and only fall back to a project-local config if needed.
-
-## Data preparation
-
-Use `scripts/prepare_retail_data.py` to clean the Kaggle Online Retail CSV and split it into the three target tables:
-
-```bash
-python scripts/prepare_retail_data.py \
-  --input /path/to/OnlineRetail.csv \
-  --output-dir ./prepared_data
-```
-
-Then load the output into BigQuery:
-
-```bash
-python scripts/load_bigquery.py \
-  --project your-gcp-project \
-  --dataset analytics_copilot \
-  --location US \
-  --transactions ./prepared_data/transactions.csv \
-  --customers ./prepared_data/customers.csv \
-  --products ./prepared_data/products.csv
-```
-
-The prep step injects the demo signal by reducing revenue for the latest 7-day window by 40%.
-
-## Cloud Run deployment
-
-For hosted submission-grade persistence, use Cloud SQL Postgres for productivity data and Secret Manager for DSN/webhook values.
-
-```bash
-PROJECT_ID=your-gcp-project
-INSTANCE_CONNECTION_NAME=your-gcp-project:us-central1:agentic-copilot-pg
-POSTGRES_DSN_VALUE='postgresql://copilot_app:password@/copilot?host=/cloudsql/your-gcp-project:us-central1:agentic-copilot-pg'
-SLACK_WEBHOOK_URL_VALUE='https://hooks.slack.com/services/...'
-
-PROJECT_ID="$PROJECT_ID" \
-INSTANCE_CONNECTION_NAME="$INSTANCE_CONNECTION_NAME" \
-POSTGRES_DSN_VALUE="$POSTGRES_DSN_VALUE" \
-SLACK_WEBHOOK_URL_VALUE="$SLACK_WEBHOOK_URL_VALUE" \
-./scripts/deploy_cloudrun_postgres.sh
-```
-
-Install cloud dependencies during deployment with:
-
-```bash
-pip install -e ".[cloud]"
-```
-
-## Migrate Existing SQLite Productivity Data
-
-After provisioning Cloud SQL, migrate any existing local productivity records:
-
-```bash
-python scripts/migrate_productivity_sqlite_to_postgres.py \
-  --sqlite-path ./copilot.db \
-  --postgres-dsn "$POSTGRES_DSN_VALUE"
-```
-
-Use `--dry-run` to preview row counts and `--truncate-target` for a replace-style migration.
-
-## ADK and Cloud Run
-
-This repo now supports two deployment shapes:
-
-- `FastAPI` app at `agentic_analytics.main:app`
-- `ADK` app at `adk_main:app`
-
-For the ADK path, install:
-
-```bash
 pip install -e ".[cloud,adk]"
-```
-
-The ADK agent files are:
-
-- `adk_agents/hybrid_copilot/agent.py`
-- `adk_main.py`
-- `Dockerfile.adk`
-
-To run the ADK FastAPI server locally after installing the ADK extra:
-
-```bash
-uvicorn adk_main:app --reload
-```
-
-To run the ADK web UI locally with Vertex AI instead of API-key mode:
-
-```bash
 adk web ./adk_agents
 ```
 
-This relies on:
+## Configuration
 
-- `GOOGLE_CLOUD_PROJECT`
-- `GOOGLE_CLOUD_LOCATION`
-- `GOOGLE_GENAI_USE_VERTEXAI=true`
-- your existing ADC login from `gcloud auth application-default login`
+| Variable | Default | Options |
+|----------|---------|---------|
+| `LLM_BACKEND` | `rule_based` | `vertex`, `rule_based` |
+| `WAREHOUSE_BACKEND` | `demo` | `bigquery`, `demo` |
+| `NOTIFIER_BACKEND` | `log` | `slack`, `log` |
+| `PRODUCTIVITY_STORE_BACKEND` | `sqlite` | `sqlite`, `postgres` |
+| `VERTEX_MODEL` | `gemini-2.5-flash` | Any Vertex model |
+| `ALERT_THRESHOLD_PERCENT` | `20` | % revenue drop to trigger alert |
 
-## Test coverage
+See `.env.demo` and `.env.paused` for preset configs.
 
-The tests exercise:
+## Agent Behavior
 
-- SQL generation for the supported demo queries
-- Revenue drop analysis and country attribution logic
-- Alert threshold behavior
-- Tool schema validation
-- Hybrid analytics + productivity orchestration
-- End-to-end workflow orchestration with local mock providers
+### Planner Agent
+- **Input**: User query
+- **Output**: Single routing sentence (e.g., `"Call analytics_question to get top products, then send_slack_message with result"`)
+- **Design**: No reasoning bloat, no greeting responses—pure routing
 
-Run tests with:
+### Execution Agent
+- **Input**: User query + routing plan
+- **Output**: Executes tools in sequence; returns complete analytics response with markdown
+- **Key behavior**:
+  - Preserves **full** markdown (tables, SQL blocks, analysis)
+  - When saving notes: uses complete `formatted_response` (not truncated)
+  - For Slack: passes full response through markdown→Slack converter
 
+### Data Flow Example
+
+**User**: `"Show me daily revenue trend for the last 30 days, then send it to Slack"`
+
+1. **Planner**: `"Call analytics_question, then send_slack_message with the result"`
+2. **Executor**:
+   - Calls `analytics_question("Show me daily revenue trend for the last 30 days")`
+   - Gets back: `# Daily revenue trend...  ## Analysis ... ## Data | date | revenue | ...`
+   - Calls `send_slack_message(full_response)`
+   - Slack notifier applies `_markdown_to_slack()` converter:
+     - `# Title` → `*Title*` (bold)
+     - `| table |` → ` ```\n| table |\n``` ` (monospace)
+     - ````sql` → kept as-is
+   - Returns: `"✓ Daily revenue trend delivered to Slack"`
+
+## Database & Persistence
+
+### Local SQLite (default)
 ```bash
-python -m unittest discover -s tests
+export SQLITE_DB_PATH=./copilot.db
+```
+Auto-creates tasks, calendar events, notes in a local SQLite DB.
+
+### Cloud SQL Postgres
+```bash
+export PRODUCTIVITY_STORE_BACKEND=postgres
+export POSTGRES_DSN=postgresql://user:password@/copilot?host=/cloudsql/instance
+```
+Used in production Cloud Run deployments.
+
+## Deployment
+
+### Cloud Run (FastAPI)
+```bash
+gcloud run deploy agentic-analytics-copilot \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars LLM_BACKEND=vertex,WAREHOUSE_BACKEND=bigquery
 ```
 
-## Pause and Resume
-
-To avoid cloud usage until demo day, switch the project into low-cost paused mode:
-
+### Cloud Run (ADK Web + FastAPI)
 ```bash
-./scripts/pause_project.sh
+# Build ADK image
+gcloud builds submit . --config cloudbuild.adk.yaml
+
+# Deploy
+gcloud run deploy agentic-copilot-adk \
+  --image us-central1-docker.pkg.dev/PROJECT/repo/agentic-copilot-adk:latest \
+  --region us-central1 \
+  --allow-unauthenticated
 ```
 
-That sets:
-
-- `LLM_BACKEND=rule_based`
-- `WAREHOUSE_BACKEND=demo`
-- `NOTIFIER_BACKEND=log`
-
-To restore the prepared BigQuery demo setup:
+## Testing
 
 ```bash
-./scripts/resume_demo.sh
+python -m unittest discover -s tests -p "test_*.py"
 ```
 
-That restores:
+Covers:
+- SQL generation for analytics queries
+- Revenue drop analysis + country drivers
+- Tool registry validation
+- Hybrid workflows (analytics + productivity)
+- End-to-end integration
 
-- `WAREHOUSE_BACKEND=bigquery`
-- `TRANSACTIONS_TABLE=transactions_demo`
-- `CUSTOMERS_TABLE=customers_demo`
-- `PRODUCTS_TABLE=products_demo`
+## Troubleshooting
+## Scripts
 
-The current live demo config is also stored in `.env.demo`, and the paused config is stored in `.env.paused`.
+All scripts are in `./scripts/`:
+
+| Script | Purpose |
+|--------|---------|
+| `prepare_retail_data.py` | Clean Kaggle Online Retail CSV and split into 3 tables |
+| `load_bigquery.py` | Load prepared data into BigQuery |
+| `deploy_cloudrun_postgres.sh` | Deploy to Cloud Run with Cloud SQL + Secret Manager |
+| `migrate_productivity_sqlite_to_postgres.py` | Migrate local SQLite data to production Postgres |
+| `pause_project.sh` | Switch to low-cost demo mode (rule-based LLM, demo data) |
+| `resume_demo.sh` | Restore BigQuery demo setup |
+| `gcloudw.sh` | Wrapper for gcloud to use local config when needed |
+
+
+### Notes not capturing full content
+- Check execution agent instruction: must include `"CRITICAL: When passing analytics data to save_note, use the COMPLETE formatted response..."`
+- Ensure `save_note()` calls registry directly (not via `SERVICE.copilot()`)
+
+### Slack messages truncated
+- Verify `_markdown_to_slack()` converter is active in `providers.py`
+- Check webhook URL is valid and the bot has permissions
+
+### Charts not showing
+- Charts are attached as ADK artifacts (not embedded base64)
+- ADK web UI renders artifacts inline; REST API includes base64 in response
+- For REST API debugging: check `response["chart"]["base64_data"]` is present
+
+## Contributing
+
+- Use `dev` branch for development
+- Run tests before submitting PRs
+- Update docstrings for public functions
+- Follow existing code style (black, mypy compatible)
+
+For more details, see the repository documentation.
+
+## License
+
+MIT
+

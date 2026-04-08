@@ -40,11 +40,12 @@ class WorkflowTests(TestCase):
         result = service.ask("Show me sales for last month")
         self.assertEqual(result["heading"], "Show me sales for last month")
         self.assertTrue(result["validation"]["valid"])
-        self.assertIsNone(result["sql"])
+        # SQL is now always included for debugging
+        self.assertIsNotNone(result["sql"])
         self.assertIn("# Show me sales for last month", result["formatted_response"])
         self.assertIn("## Analysis", result["formatted_response"])
         self.assertIn("## Data", result["formatted_response"])
-        self.assertNotIn("## SQL Used", result["formatted_response"])
+        self.assertIn("## SQL Used", result["formatted_response"])
 
     def test_formatted_response_includes_sql_only_when_requested(self) -> None:
         settings = Settings(demo_anchor_date="2026-04-06")
